@@ -1,6 +1,96 @@
-@ToDoApi_HostAddress = http://localhost:5087
+@ToDoApi_HostAddress = https://localhost:7275
+@adminEmail = admin@todoapi.local
+@adminPassword = Admin123!
+
+POST {{ToDoApi_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "demo",
+  "email": "demo@example.com",
+  "password": "Pass@123"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/confirm-email
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "token": "{{confirmationToken}}"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@example.com",
+  "password": "Pass@123"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "demo@example.com"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "demo@example.com",
+  "token": "{{resetToken}}",
+  "newPassword": "NewPass@123"
+}
+###
+
+GET {{ToDoApi_HostAddress}}/api/admin/users
+Authorization: Bearer {{adminAccessToken}}
+Accept: application/json
+
+###
+
+POST {{ToDoApi_HostAddress}}/api/admin/roles
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: application/json
+
+{
+  "roleName": "Manager"
+}
+###
+
+POST {{ToDoApi_HostAddress}}/api/admin/users/{{userId}}/roles
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: application/json
+
+{
+  "roleName": "Manager"
+}
+###
 
 GET {{ToDoApi_HostAddress}}/weatherforecast/
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###

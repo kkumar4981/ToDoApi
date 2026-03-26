@@ -1,0 +1,115 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}
+\fs24
+\b Admin Users API Flow\par
+\b0\par
+Endpoint: \f1 GET https://localhost:7275/api/admin/users\f0\par
+\par
+\b 1. Controller kya karta hai\par
+\b0
+Sabse pehle request \f1 AdminController\f0 ke method \f1 GetUsers(CancellationToken cancellationToken)\f0 me aati hai.\par
+Ye method admin users list lane ke liye \f1 adminService.GetUsersAsync(cancellationToken)\f0 call karta hai.\par
+\par
+\b 2. Method signature me jo types hain unka meaning\par
+\b0
+\b CancellationToken\par
+\b0
+Ye request cancel hone ka signal hota hai. Agar browser band ho jaye, client request cancel kar de, ya timeout aa jaye, to is token ke through operation beech me roka ja sakta hai.\par
+\par
+\b Task\par
+\b0
+Ye batata hai ki method asynchronous hai. Matlab method turant final value nahi deta, pehle kaam karta hai aur baad me result deta hai.\par
+\par
+\b ActionResult\par
+\b0
+Ye controller action ka return wrapper hai. Isse hum success me \f1 Ok(data)\f0 return kar sakte hain aur error case me \f1 BadRequest()\f0, \f1 Unauthorized()\f0, \f1 NotFound()\f0 jaise HTTP responses bhej sakte hain.\par
+\par
+\b IReadOnlyList\par
+\b0
+Ye ek list contract hai jo read-only intent show karta hai. Yaha iska matlab hai API multiple users return karegi, aur consumer ko bataya ja raha hai ki ye output collection hai.\par
+\par
+\b 3. Service layer ka role\par
+\b0
+Controller ke paas \f1 IAdminService\f0 ka reference hota hai.\par
+Runtime me iska implementation \f1 AdminService\f0 hota hai.\par
+Controller service interface ko call karta hai, implementation directly nahi. Isse code loosely coupled rehta hai.\par
+\par
+\b 4. AdminService ke andar kya hota hai\par
+\b0
+\f1 AdminService.GetUsersAsync(cancellationToken)\f0 ke andar pehle ye call hoti hai:\par
+\f1 userRepository.GetAllAsync(cancellationToken)\f0\par
+\par
+Yaha \f1 userRepository\f0 ka type \f1 IUserRepository\f0 hai, lekin runtime implementation \f1 SqlServerUserRepository\f0 hoti hai.\par
+\par
+\b 5. Repository layer ka flow\par
+\b0
+\f1 SqlServerUserRepository.GetAllAsync\f0 SQL Server connection open karta hai.\par
+Phir stored procedure \f1 dbo.usp_IdentityUsers_List\f0 execute hoti hai.\par
+Ye SP \f1 IdentityUsers\f0 table se sabhi users read karti hai.\par
+Repository har database row ko \f1 ApplicationUser\f0 object me map karta hai.\par
+Phir ye users list service ko return ho jati hai.\par
+\par
+\b 6. Roles ka extra flow\par
+\b0
+AdminService sirf users list return nahi karta. Har user ke roles bhi nikalta hai.\par
+Iske liye har user par ye call hoti hai:\par
+\f1 userManager.GetRolesAsync(user)\f0\par
+\par
+Iska actual flow hai:\par
+\f1 UserManager -> SqlUserStore.GetRolesAsync -> IUserRepository.GetRoleNamesAsync -> SqlServerUserRepository.GetRoleNamesAsync -> dbo.usp_IdentityUserRoles_GetRoleNamesByUserId\f0\par
+\par
+Ye stored procedure \f1 IdentityUserRoles\f0 aur \f1 IdentityRoles\f0 tables se role names nikalti hai.\par
+\par
+\b 7. Final response kaise banta hai\par
+\b0
+AdminService har user ke liye \f1 UserAdminResponse\f0 object banata hai.\par
+Is object me commonly ye fields hoti hain:\par
+- Id\par
+- UserName\par
+- Email\par
+- EmailConfirmed\par
+- LockoutEnabled\par
+- LockoutEnd\par
+- AccessFailedCount\par
+- CreatedAtUtc\par
+- Roles\par
+\par
+Ye list wapas controller ko milti hai.\par
+Controller \f1 return Ok(users);\f0 karta hai.\par
+ASP.NET Core is object list ko JSON me serialize karke response bhej deta hai.\par
+\par
+\b 8. Pure flow ko short me dekho\par
+\b0
+\f1 HTTP Request\par
+-> AdminController.GetUsers\par
+-> IAdminService.GetUsersAsync\par
+-> AdminService.GetUsersAsync\par
+-> IUserRepository.GetAllAsync\par
+-> SqlServerUserRepository.GetAllAsync\par
+-> dbo.usp_IdentityUsers_List\par
+-> IdentityUsers table\par
+\par
+Then for each user:\par
+-> UserManager.GetRolesAsync\par
+-> SqlUserStore.GetRolesAsync\par
+-> IUserRepository.GetRoleNamesAsync\par
+-> SqlServerUserRepository.GetRoleNamesAsync\par
+-> dbo.usp_IdentityUserRoles_GetRoleNamesByUserId\par
+-> IdentityUserRoles + IdentityRoles tables\par\f0
+\par
+\b 9. Interfaces kyun use kiye gaye\par
+\b0
+Controller ko bas \f1 IAdminService\f0 pata hai.\par
+Service ko bas \f1 IUserRepository\f0 pata hai.\par
+Isse implementation badal sakti hai bina upper layers ko tightly couple kiye.\par
+Ye testing aur maintenance dono ke liye better hota hai.\par
+\par
+\b 10. Simple mental model\par
+\b0
+Controller request/response handle karta hai.\par
+Service business logic handle karti hai.\par
+Repository database access handle karti hai.\par
+Store ASP.NET Identity ko repository se connect karta hai.\par
+Stored procedure SQL operation chalati hai.\par
+Table actual data rakhti hai.\par
+}
